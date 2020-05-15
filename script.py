@@ -77,8 +77,9 @@ def second_pass( commands, num_frames ):
             dknob = (eknob - sknob) / (eframe - sframe)
 
             for frame in range(sframe, eframe):
-                sknob += dknob
                 frames[frame][knob] = sknob
+                sknob += dknob
+
 
     return frames
 
@@ -141,6 +142,8 @@ def run(filename):
             args = command['args']
             knob_value = 1
 
+            for k in frame.keys():
+                symbols[k] = frame[k]
             if c == 'box':
                 if command['constants']:
                     reflect = command['constants']
@@ -176,17 +179,34 @@ def run(filename):
                 draw_lines(tmp, screen, zbuffer, color)
                 tmp = []
             elif c == 'move':
-                tmp = make_translate(args[0], args[1], args[2])
+                knob = command['knob']
+
+                if knob:
+                    tmp = make_translate(args[0]*symbols[knob], args[1]*symbols[knob], args[2]*symbols[knob])
+                else:
+                    tmp = make_translate(args[0], args[1], args[2])
+
                 matrix_mult(stack[-1], tmp)
                 stack[-1] = [x[:] for x in tmp]
                 tmp = []
             elif c == 'scale':
-                tmp = make_scale(args[0], args[1], args[2])
+                knob = command['knob']
+
+                if knob:
+                    tmp = make_scale(args[0]*symbols[knob], args[1]*symbols[knob], args[2]*symbols[knob])
+                else:
+                    tmp = make_scale(args[0], args[1], args[2])
                 matrix_mult(stack[-1], tmp)
                 stack[-1] = [x[:] for x in tmp]
                 tmp = []
             elif c == 'rotate':
-                theta = args[1] * (math.pi/180)
+                knob = command['knob']
+
+                if knob:
+                    theta = args[1] * symbols[knob] * (math.pi/180)
+                else:
+                    theta = args[1]* (math.pi/180)
+
                 if args[0] == 'x':
                     tmp = make_rotX(theta)
                 elif args[0] == 'y':
@@ -196,6 +216,7 @@ def run(filename):
                 matrix_mult( stack[-1], tmp )
                 stack[-1] = [ x[:] for x in tmp]
                 tmp = []
+
             elif c == 'push':
                 stack.append([x[:] for x in stack[-1]] )
             elif c == 'pop':
@@ -203,14 +224,15 @@ def run(filename):
             elif c == 'display':
                 display(screen)
             elif c == 'save':
-                save_extension(screen, args[0])
+                save_extension(screen, args[0] + ".png")
 
         if (num_frames != 1 and name != 'default_gif'):
             places = len(str(num_frames)) - len(str(cur_frame))
 
             number = "0" * places + str(cur_frame)
             file_name = "./anim/" + name + number
-            save_extensioon = (screen, file_name)
+            print(file_name)
+            save_extension(screen, file_name)
             tmp = new_matrix()
             ident(tmp)
             stack = [ [x[:] for x in tmp] ]
